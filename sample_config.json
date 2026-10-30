@@ -1,0 +1,6 @@
+{
+    "symbol": "NIFTY",
+    "expiry_date": "27-Oct-2026",
+    "history_days": 7,
+    "option_type": "CE"
+}

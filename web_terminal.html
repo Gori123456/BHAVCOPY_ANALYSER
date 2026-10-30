@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F&O Bhavcopy Analyzer • Institutional Quantitative Terminal</title>
+    <!-- Tailwind CSS with Dark Mode support -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for Quantitative Financial Visuals -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for real client-side CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- SheetJS for real Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#070B14',
+                        surface: '#0E1726',
+                        'surface-card': '#131F37',
+                        'surface-hover': '#1B2A4A',
+                        'terminal-border': '#1E293B',
+                        'neon-cyan': '#0284C7',
+                        'neon-green': '#10B981',
+                        'neon-red': '#EF4444',
+                        'neon-amber': '#F59E0B',
+                        'neon-purple': '#8B5CF6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Smooth theme transition */
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94A3B8;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #1E293B;
+        }
+        .dropzone-active {
+            border-color: #0284C7 !important;
+            background: rgba(2, 132, 199, 0.08) !important;
+        }
+        .ticker-wrap {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .ticker-move {
+            display: inline-block;
+            animation: ticker 40s linear infinite;
+        }
+        .ticker-move:hover {
+            animation-play-state: paused;
+        }
+        @keyframes ticker {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-50%, 0, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 dark:bg-obsidian text-slate-900 dark:text-slate-100 antialiased selection:bg-sky-500 selection:text-white">
+
+    <!-- TOP HEADER -->
+    <header class="border-b border-slate-200 dark:border-terminal-border bg-white/95 dark:bg-surface/95 sticky top-0 z-50 backdrop-blur-md">
+        <!-- Main Top Navigation -->
+        <div class="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-700 flex items-center justify-center shadow-md">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                            QUANT DERIVATIVES TERMINAL <span class="text-sky-600 dark:text-sky-400 text-xs font-mono font-medium px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-950/60 border border-sky-300 dark:border-sky-800/50">PRO v2.0</span>
+                        </h1>
+                        <span id="engineBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700">
+                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                            AWAITING DATA
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 font-mono">Real-Time & End-of-Day NSE F&O UDIFF Bhavcopy Quantitative Analysis Engine</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center flex-wrap gap-2.5">
+
+                <!-- Real Live API Spot Button -->
+                <button id="btnFetchLiveSpot" onclick="fetchLiveMarketData()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60 flex items-center gap-2 transition">
+                    <span id="livePulseDot" class="w-2 h-2 rounded-full bg-sky-500"></span>
+                    <span id="lblLiveSpotBtn">📡 Fetch Live Spot (Real API)</span>
+                </button>
+
+                <!-- Light / Dark Theme Switcher -->
+                <button id="btnThemeToggle" onclick="toggleTheme()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition">
+                    <span id="themeIcon">☀️</span>
+                    <span id="themeText">Light Mode</span>
+                </button>
+
+                <!-- Export Excel -->
+                <button id="btnExportExcel" onclick="exportToExcel()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm flex items-center gap-2 transition opacity-60 cursor-not-allowed" disabled>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Export Excel (.xlsx)
+                </button>
+            </div>
+        </div>
+
+        <!-- Ticker Tape Banner (Displays only genuine status and computed/live results) -->
+        <div class="bg-slate-100 dark:bg-black/70 border-t border-slate-200 dark:border-terminal-border/60 py-1.5 px-4 text-xs font-mono text-slate-600 dark:text-slate-300 ticker-wrap">
+            <div class="ticker-move space-x-8" id="tickerContent">
+                <span id="tapeStatus" class="font-semibold text-slate-700 dark:text-slate-300">● SYSTEM IDLE: Drop Current Bhavcopy & Historical Pool files to execute quantitative valuation.</span>
+                <span class="text-slate-400">NO DEFAULT/MOCK DATA IS LOADED</span>
+                <span>DATA INTEGRITY: 100% CALCULATED FROM REAL USER FILES</span>
+                <!-- Duplicate for smooth loop -->
+                <span class="font-semibold text-slate-700 dark:text-slate-300">● SYSTEM IDLE: Drop Current Bhavcopy & Historical Pool files to execute quantitative valuation.</span>
+                <span class="text-slate-400">NO DEFAULT/MOCK DATA IS LOADED</span>
+                <span>DATA INTEGRITY: 100% CALCULATED FROM REAL USER FILES</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 py-5 space-y-6">
+
+        <!-- 1. THREE-COLUMN CONTROL DESK -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+            <!-- Card 1: Current Bhavcopy Upload -->
+            <div class="bg-white dark:bg-surface rounded-2xl p-4 border border-slate-200 dark:border-terminal-border shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 dark:border-terminal-border/80">
+                        <div class="flex items-center gap-2">
+                            <span class="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                            </span>
+                            <h2 class="text-sm font-semibold tracking-wide text-slate-800 dark:text-slate-200">1. Current Day Bhavcopy</h2>
+                        </div>
+                        <span id="currentStatusBadge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">0 loaded</span>
+                    </div>
+
+                    <!-- Dropzone -->
+                    <div id="currentDropzone" onclick="document.getElementById('fileCurrent').click()" class="border-2 border-dashed border-slate-300 dark:border-slate-700/80 hover:border-sky-500 rounded-xl p-5 text-center cursor-pointer transition bg-slate-50 dark:bg-slate-900/40 hover:bg-slate-100 dark:hover:bg-slate-900/80">
+                        <input type="file" id="fileCurrent" class="hidden" accept=".csv,.xlsx,.xls">
+                        <svg class="w-8 h-8 mx-auto text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <p class="text-xs font-medium text-slate-700 dark:text-slate-200">Drop current Bhavcopy here or <span class="text-sky-600 dark:text-sky-400 underline">browse</span></p>
+                        <p class="text-[11px] text-slate-500 font-mono mt-1">E.g. BhavCopy_NSE_FO_0_0_0_...csv</p>
+                    </div>
+
+                    <!-- Current File Display -->
+                    <div id="currentFilePill" class="mt-3 hidden p-2.5 rounded-lg bg-slate-100 dark:bg-surface-card border border-slate-200 dark:border-terminal-border flex items-center justify-between">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <span class="text-sky-600 dark:text-sky-400 text-sm">📄</span>
+                            <div class="truncate text-xs font-mono text-slate-800 dark:text-slate-200" id="currentFileName">None</div>
+                        </div>
+                        <button onclick="clearCurrentFile()" class="text-slate-400 hover:text-red-500 text-xs px-2 py-0.5">✕</button>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-200 dark:border-terminal-border/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
+                    <span>Parsed Rows: <strong id="currentRowsCount" class="text-slate-900 dark:text-slate-200">0</strong></span>
+                    <span>Date: <strong id="currentTradeDate" class="text-slate-900 dark:text-slate-200">--</strong></span>
+                </div>
+            </div>
+
+            <!-- Card 2: Historical Bhavcopy Pool -->
+            <div class="bg-white dark:bg-surface rounded-2xl p-4 border border-slate-200 dark:border-terminal-border shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 dark:border-terminal-border/80">
+                        <div class="flex items-center gap-2">
+                            <span class="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </span>
+                            <h2 class="text-sm font-semibold tracking-wide text-slate-800 dark:text-slate-200">2. Historical Data Pool</h2>
+                        </div>
+                        <span id="histStatusBadge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">0 files</span>
+                    </div>
+
+                    <!-- Historical Dropzone -->
+                    <div id="histDropzone" onclick="document.getElementById('fileHist').click()" class="border-2 border-dashed border-slate-300 dark:border-slate-700/80 hover:border-purple-500 rounded-xl p-5 text-center cursor-pointer transition bg-slate-50 dark:bg-slate-900/40 hover:bg-slate-100 dark:hover:bg-slate-900/80">
+                        <input type="file" id="fileHist" multiple class="hidden" accept=".csv,.xlsx,.xls">
+                        <svg class="w-8 h-8 mx-auto text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+                        <p class="text-xs font-medium text-slate-700 dark:text-slate-200">Drop historical files or <span class="text-purple-600 dark:text-purple-400 underline">select files</span></p>
+                        <p class="text-[11px] text-slate-500 font-mono mt-1">Multi-day Bhavcopy or OPTIDX reports</p>
+                    </div>
+
+                    <!-- File Chips Container -->
+                    <div id="histChipsContainer" class="mt-2.5 max-h-24 overflow-y-auto space-y-1">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="mt-3 pt-3 border-t border-slate-200 dark:border-terminal-border/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span>Distinct Sessions: <strong id="histSessionsCount" class="text-purple-600 dark:text-purple-300 font-mono">0 Days</strong></span>
+                    <button onclick="clearHistFiles()" class="text-xs text-slate-500 hover:text-red-500">Clear All</button>
+                </div>
+            </div>
+
+            <!-- Card 3: Quantitative Contract Matrix & Run Action -->
+            <div class="bg-white dark:bg-surface rounded-2xl p-4 border border-slate-200 dark:border-terminal-border shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 dark:border-terminal-border/80">
+                        <div class="flex items-center gap-2">
+                            <span class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                            </span>
+                            <h2 class="text-sm font-semibold tracking-wide text-slate-800 dark:text-slate-200">3. Contract Matrix & Setup</h2>
+                        </div>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">Parameters</span>
+                    </div>
+
+                    <!-- Form Controls Grid -->
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                            <label class="block text-slate-500 dark:text-slate-400 mb-1">Index / Stock Symbol</label>
+                            <select id="selectSymbol" onchange="onSymbolChange()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-terminal-border rounded-lg px-2.5 py-1.5 font-mono text-slate-900 dark:text-white focus:outline-none focus:border-sky-500">
+                                <option value="NIFTY" selected>NIFTY</option>
+                                <option value="BANKNIFTY">BANKNIFTY</option>
+                                <option value="FINNIFTY">FINNIFTY</option>
+                                <option value="MIDCPNIFTY">MIDCPNIFTY</option>
+                                <option value="SENSEX">SENSEX</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-500 dark:text-slate-400 mb-1">Target Expiry Date</label>
+                            <select id="selectExpiry" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-terminal-border rounded-lg px-2.5 py-1.5 font-mono text-slate-900 dark:text-white focus:outline-none focus:border-sky-500">
+                                <option value="AUTO" selected>Auto-Detect from File</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-500 dark:text-slate-400 mb-1">Strike Price</label>
+                            <select id="selectStrike" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-terminal-border rounded-lg px-2.5 py-1.5 font-mono text-slate-900 dark:text-white focus:outline-none focus:border-sky-500">
+                                <option value="AUTO" selected>Auto (ATM Strike)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-500 dark:text-slate-400 mb-1">Option Leg Side</label>
+                            <select id="selectSide" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-terminal-border rounded-lg px-2.5 py-1.5 font-mono text-slate-900 dark:text-white focus:outline-none focus:border-sky-500">
+                                <option value="BOTH" selected>Both (CE & PE)</option>
+                                <option value="CE">Call Only (CE)</option>
+                                <option value="PE">Put Only (PE)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200 dark:border-terminal-border/60">
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Historical Lookback:</span>
+                        <div class="flex items-center gap-2">
+                            <input type="range" id="rangeDays" min="1" max="30" value="7" oninput="document.getElementById('lblDaysVal').textContent = this.value + ' Days'" class="accent-sky-500 h-1.5 w-24">
+                            <span id="lblDaysVal" class="text-xs font-mono font-bold text-sky-600 dark:text-sky-400 w-16 text-right">7 Days</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Primary Run Execution Button -->
+                <div class="mt-4 pt-3 border-t border-slate-200 dark:border-terminal-border/60">
+                    <button id="btnRunAnalysis" onclick="executeAnalysis()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 hover:from-sky-500 hover:via-blue-500 hover:to-indigo-500 font-bold text-sm text-white shadow-md flex items-center justify-center gap-2 transition duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        EXECUTE QUANTITATIVE ANALYSIS
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 2. REAL-WORLD EXECUTIVE 5-KPI METRIC CARDS (Clean Blank Default State) -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+
+            <!-- Card 1: Spot & ATM Strike -->
+            <div class="bg-white dark:bg-surface rounded-xl p-3.5 border-l-4 border-l-sky-500 border border-slate-200 dark:border-terminal-border shadow-sm">
+                <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Spot & ATM Strike</span>
+                <div class="mt-1 flex items-baseline justify-between">
+                    <span id="kpiAtmStrike" class="text-2xl font-bold font-mono text-slate-800 dark:text-white">--</span>
+                    <span id="kpiAtmType" class="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-mono font-medium">ATM</span>
+                </div>
+                <div class="mt-2 text-xs flex justify-between text-slate-500 dark:text-slate-400 font-mono">
+                    <span>Spot: <strong id="kpiSpotPrice" class="text-slate-800 dark:text-slate-200">--</strong></span>
+                    <span id="kpiBasis" class="text-sky-600 dark:text-sky-400">Basis: --</span>
+                </div>
+            </div>
+
+            <!-- Card 2: ATM Call (CE) Close vs Historical Avg -->
+            <div class="bg-white dark:bg-surface rounded-xl p-3.5 border-l-4 border-l-emerald-500 border border-slate-200 dark:border-terminal-border shadow-sm">
+                <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">ATM Call (CE) Valuation</span>
+                <div class="mt-1 flex items-baseline justify-between">
+                    <span id="kpiCeClose" class="text-2xl font-bold font-mono text-slate-800 dark:text-white">--</span>
+                    <span id="kpiCeDiffBadge" class="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono font-bold">--</span>
+                </div>
+                <div class="mt-2 text-xs flex justify-between text-slate-500 dark:text-slate-400 font-mono">
+                    <span>Avg: <strong id="kpiCeAvg" class="text-slate-800 dark:text-slate-200">--</strong></span>
+                    <span id="kpiCeTag" class="text-slate-400">Awaiting Data</span>
+                </div>
+            </div>
+
+            <!-- Card 3: ATM Put (PE) Close vs Historical Avg -->
+            <div class="bg-white dark:bg-surface rounded-xl p-3.5 border-l-4 border-l-amber-500 border border-slate-200 dark:border-terminal-border shadow-sm">
+                <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">ATM Put (PE) Valuation</span>
+                <div class="mt-1 flex items-baseline justify-between">
+                    <span id="kpiPeClose" class="text-2xl font-bold font-mono text-slate-800 dark:text-white">--</span>
+                    <span id="kpiPeDiffBadge" class="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono font-bold">--</span>
+                </div>
+                <div class="mt-2 text-xs flex justify-between text-slate-500 dark:text-slate-400 font-mono">
+                    <span>Avg: <strong id="kpiPeAvg" class="text-slate-800 dark:text-slate-200">--</strong></span>
+                    <span id="kpiPeTag" class="text-slate-400">Awaiting Data</span>
+                </div>
+            </div>
+
+            <!-- Card 4: ATM Straddle Expected Move -->
+            <div class="bg-white dark:bg-surface rounded-xl p-3.5 border-l-4 border-l-rose-500 border border-slate-200 dark:border-terminal-border shadow-sm">
+                <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">ATM Straddle Move</span>
+                <div class="mt-1 flex items-baseline justify-between">
+                    <span id="kpiStraddleCost" class="text-2xl font-bold font-mono text-slate-800 dark:text-white">--</span>
+                    <span id="kpiStraddlePct" class="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono font-bold">--</span>
+                </div>
+                <div class="mt-2 text-xs flex justify-between text-slate-500 dark:text-slate-400 font-mono">
+                    <span>Hist Avg: <strong id="kpiStraddleAvg" class="text-slate-800 dark:text-slate-200">--</strong></span>
+                    <span id="kpiStraddleTag" class="text-slate-400">Awaiting Data</span>
+                </div>
+            </div>
+
+            <!-- Card 5: Quantitative Bias / Edge Signal -->
+            <div class="bg-white dark:bg-surface rounded-xl p-3.5 border-l-4 border-l-purple-500 border border-slate-200 dark:border-terminal-border shadow-sm">
+                <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Institutional Quant Signal</span>
+                <div class="mt-1">
+                    <span id="kpiQuantSignal" class="text-base font-bold font-mono text-slate-700 dark:text-purple-300 block leading-tight">SYSTEM READY</span>
+                    <span id="kpiQuantEdgeTag" class="text-[11px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono font-medium inline-block mt-1">Awaiting Data</span>
+                </div>
+                <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                    Edge: <span id="kpiEdgeStatus" class="text-slate-400">No active bias</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 2.5 REAL-WORLD EXECUTIVE DIRECTIVE: TOMORROW'S ACTION PLAN & FUTURE RADAR -->
+        <div class="bg-white dark:bg-surface rounded-2xl p-5 border border-slate-200 dark:border-terminal-border shadow-sm relative overflow-hidden">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3.5 mb-4 border-b border-slate-200 dark:border-terminal-border/80 gap-3">
+                <div class="flex items-center gap-2.5">
+                    <span id="radarDot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                    <h2 class="text-sm font-bold tracking-wide text-slate-800 dark:text-white flex items-center gap-2">
+                        <span>🌅</span> TOMORROW'S ACTION DIRECTIVE & FUTURE ANALYSIS RADAR
+                    </h2>
+                    <span id="radarStatusPill" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">AWAITING EXECUTION</span>
+                </div>
+                <div class="flex items-center gap-3 text-xs font-mono">
+                    <span class="text-slate-500 dark:text-slate-400">Execution Window:</span>
+                    <strong class="text-sky-600 dark:text-sky-400 bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded border border-slate-200 dark:border-terminal-border">09:18 AM – 09:30 AM IST</strong>
+                </div>
+            </div>
+
+            <!-- 4 Structured Action Pillars -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+
+                <!-- Pillar 1: Tomorrow 9:15 AM Execution -->
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/90 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-xs mb-2">
+                            <span class="font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                                <span>⚡</span> 1. Tomorrow Morning Action
+                            </span>
+                            <span id="actTagOpen" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">STANDBY</span>
+                        </div>
+                        <p id="actTradeRecommendation" class="text-sm font-bold text-slate-800 dark:text-white font-mono">Awaiting calculation...</p>
+                        <p id="actTradeRationale" class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Upload Bhavcopy files and click 'Execute Quantitative Analysis' to compute tomorrow's entry recommendations.</p>
+                    </div>
+                    <div class="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-500 dark:text-slate-300 flex justify-between">
+                        <span>Entry Total: <strong id="actEntryPrem" class="text-slate-700 dark:text-slate-300">--</strong></span>
+                        <span>Type: <strong id="actEntryType" class="text-slate-500">--</strong></span>
+                    </div>
+                </div>
+
+                <!-- Pillar 2: Profit Target & Trailing Rules -->
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/90 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-xs mb-2">
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                                <span>🎯</span> 2. Profit Target & Exit
+                            </span>
+                            <span id="actTargetBadge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">STANDBY</span>
+                        </div>
+                        <p id="actTargetPrice" class="text-sm font-bold text-slate-800 dark:text-white font-mono">Target: --</p>
+                        <p id="actTargetDesc" class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Profit target is automatically derived from historical option premium mean-reversion rates.</p>
+                    </div>
+                    <div class="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-500 dark:text-slate-300 flex justify-between">
+                        <span>Trailing Rule:</span>
+                        <span id="actTrailRule" class="text-slate-500">Awaiting input</span>
+                    </div>
+                </div>
+
+                <!-- Pillar 3: Defensive Corridor & Stop Loss -->
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/90 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-xs mb-2">
+                            <span class="font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                                <span>🛡️</span> 3. Stop-Loss & Risk Range
+                            </span>
+                            <span id="actStopBadge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">STANDBY</span>
+                        </div>
+                        <p id="actStopLossPrice" class="text-sm font-bold text-slate-800 dark:text-white font-mono">Stop Loss: --</p>
+                        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 space-y-0.5">
+                            <div>Lower Breakeven: <strong id="actLowerBE" class="text-slate-700 dark:text-slate-300 font-mono">--</strong></div>
+                            <div>Upper Breakeven: <strong id="actUpperBE" class="text-slate-700 dark:text-slate-300 font-mono">--</strong></div>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-500 flex justify-between">
+                        <span>Safe Corridor:</span>
+                        <strong id="actCushionPts" class="text-slate-600 dark:text-slate-400">-- Pts Cushion</strong>
+                    </div>
+                </div>
+
+                <!-- Pillar 4: Future Analysis to Perform -->
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/90 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-xs mb-2">
+                            <span class="font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                                <span>🔭</span> 4. Future Analysis to Perform
+                            </span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">ROADMAP</span>
+                        </div>
+                        <p class="text-sm font-bold text-slate-800 dark:text-white font-mono">Daily 6:30 PM Decay Audit</p>
+                        <ul class="text-xs text-slate-500 dark:text-slate-400 mt-1 space-y-1 list-disc list-inside">
+                            <li>Check tomorrow's Bhavcopy for Day-over-Day theta rate</li>
+                            <li>Watch Strike Migration if spot crosses ±100 pts</li>
+                            <li>Verify Call vs Put Open Interest (OI) buildup</li>
+                        </ul>
+                    </div>
+                    <div class="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 text-[11px] font-mono text-purple-600 dark:text-purple-300 flex justify-between">
+                        <span>Next Milestone:</span>
+                        <strong class="text-slate-700 dark:text-slate-300">Expiry (T-0) 2:30 PM Close</strong>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 3. INTERACTIVE VISUAL COMPARISON CHART (Clean Placeholder State) -->
+        <div class="bg-white dark:bg-surface rounded-2xl p-5 border border-slate-200 dark:border-terminal-border shadow-sm">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 dark:border-terminal-border/80">
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                    </span>
+                    <h2 class="text-sm font-semibold tracking-wide text-slate-800 dark:text-slate-200">Option Premium Valuation vs Historical Corridor (Current Close vs N-Day Avg, Max, Min)</h2>
+                </div>
+                <span class="text-xs font-mono text-slate-500 dark:text-slate-400">Values in ₹ (INR per contract)</span>
+            </div>
+            <div class="h-64 w-full relative flex items-center justify-center" id="chartWrapper">
+                <canvas id="valuationChart" class="hidden"></canvas>
+                <div id="chartPlaceholder" class="text-center font-mono text-xs text-slate-400 p-8">
+                    <svg class="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Awaiting calculation. Upload Bhavcopy files above and click "Execute Quantitative Analysis" to render the valuation corridor.
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. INSTITUTIONAL TABBED ANALYTICS WORKSPACE -->
+        <div class="bg-white dark:bg-surface rounded-2xl overflow-hidden border border-slate-200 dark:border-terminal-border shadow-sm">
+            <!-- Tab Headers -->
+            <div class="flex border-b border-slate-200 dark:border-terminal-border bg-slate-50 dark:bg-slate-900/60 px-4 pt-2 gap-2 overflow-x-auto">
+                <button onclick="switchTab('tabGrid')" id="btnTabGrid" class="px-4 py-2.5 text-xs font-bold rounded-t-lg border-b-2 border-sky-600 dark:border-sky-400 text-sky-600 dark:text-sky-400 bg-white dark:bg-surface-card flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    EXECUTIVE RESULTS GRID
+                </button>
+                <button onclick="switchTab('tabTomorrow')" id="btnTabTomorrow" class="px-4 py-2.5 text-xs font-bold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    🌅 TOMORROW'S ACTION PLAN
+                </button>
+                <button onclick="switchTab('tabFuture')" id="btnTabFuture" class="px-4 py-2.5 text-xs font-bold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    🔭 FUTURE ANALYSIS ROADMAP
+                </button>
+                <button onclick="switchTab('tabPlaybook')" id="btnTabPlaybook" class="px-4 py-2.5 text-xs font-bold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    QUANTITATIVE STRATEGIES
+                </button>
+                <button onclick="switchTab('tabLogs')" id="btnTabLogs" class="px-4 py-2.5 text-xs font-bold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    AUDIT CONSOLE
+                </button>
+            </div>
+
+            <!-- Tab 1: Executive Results Grid -->
+            <div id="tabGrid" class="p-4">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs font-mono">
+                        <thead class="bg-slate-100 dark:bg-slate-900/90 text-slate-600 dark:text-slate-300 uppercase tracking-wider text-[11px] border-b border-slate-200 dark:border-terminal-border">
+                            <tr>
+                                <th class="p-3">Contract</th>
+                                <th class="p-3">Strike</th>
+                                <th class="p-3">Expiry</th>
+                                <th class="p-3 text-right">Current Close</th>
+                                <th class="p-3 text-right">Hist Avg</th>
+                                <th class="p-3 text-center">Valuation %</th>
+                                <th class="p-3 text-center">Quant Edge Signal</th>
+                                <th class="p-3 text-right">Open</th>
+                                <th class="p-3 text-right">High</th>
+                                <th class="p-3 text-right">Low</th>
+                                <th class="p-3 text-right">Hist Max Close</th>
+                                <th class="p-3 text-right">Hist Min Close</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-slate-200 dark:divide-slate-800/80">
+                            <tr>
+                                <td colspan="12" class="p-8 text-center text-slate-400 dark:text-slate-500 font-mono">
+                                    No analysis executed yet. Please upload Bhavcopy files above and click "Execute Quantitative Analysis".
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 2: Tomorrow's Action Plan -->
+            <div id="tabTomorrow" class="p-6 hidden space-y-5">
+                <div class="border-b border-slate-200 dark:border-terminal-border/80 pb-3 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <span>🌅</span> TACTICAL EXECUTION BLUEPRINT FOR TOMORROW'S OPENING BELL
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Calculated instructions for entering, managing, and exiting tomorrow's high-probability trade.</p>
+                    </div>
+                    <span class="text-xs px-3 py-1 rounded bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 font-mono border border-sky-200 dark:border-sky-800/50">Market Open: 9:15 AM IST</span>
+                </div>
+
+                <div id="tomorrowPlanContainer" class="p-8 text-center text-slate-400 dark:text-slate-500 font-mono">
+                    Awaiting calculation. Upload Bhavcopy files to generate exact opening bell trade triggers, entry strikes, breakevens, and risk parameters.
+                </div>
+            </div>
+
+            <!-- Tab 3: Future Analysis Roadmap -->
+            <div id="tabFuture" class="p-6 hidden space-y-5">
+                <div class="border-b border-slate-200 dark:border-terminal-border/80 pb-3 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <span>🔭</span> FUTURE QUANTITATIVE ANALYSIS ROADMAP & MONITORING PROTOCOL
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Analytical checks to perform daily as the market approaches contract expiry.</p>
+                    </div>
+                    <span class="text-xs px-3 py-1 rounded bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-300 font-mono border border-purple-200 dark:border-purple-800/50">Weekly Lifecycle</span>
+                </div>
+
+                <div id="futureRoadmapContainer" class="p-8 text-center text-slate-400 dark:text-slate-500 font-mono">
+                    Awaiting calculation. Upload Bhavcopy files to generate the step-by-step decay velocity audit and strike migration roadmap.
+                </div>
+            </div>
+
+            <!-- Tab 4: Quantitative Strategies -->
+            <div id="tabPlaybook" class="p-6 hidden space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    <!-- Strategy 1 -->
+                    <div class="p-5 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/50 dark:bg-rose-950/10">
+                        <div class="flex items-center justify-between pb-3 border-b border-rose-200 dark:border-rose-900/40">
+                            <h3 class="text-sm font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                                <span>🎯</span> PREMIUM-HARVESTING STRATEGY (OPTION WRITING)
+                            </h3>
+                            <span class="text-xs px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 font-mono font-bold">HIGH WIN RATE</span>
+                        </div>
+                        <div class="mt-3 text-xs space-y-2 text-slate-600 dark:text-slate-300 leading-relaxed">
+                            <p><strong>When to Trigger:</strong> Valuation Diff % is greater than +20% to +50% (Current Close significantly above historical average).</p>
+                            <p><strong>Rationale:</strong> Option premiums are mean-reverting. Overinflated premiums decay back to the mean rapidly due to time decay (theta) and vega crush.</p>
+                        </div>
+                    </div>
+
+                    <!-- Strategy 2 -->
+                    <div class="p-5 rounded-xl border border-sky-200 dark:border-sky-500/30 bg-sky-50/50 dark:bg-sky-950/10">
+                        <div class="flex items-center justify-between pb-3 border-b border-sky-200 dark:border-sky-900/40">
+                            <h3 class="text-sm font-bold text-sky-700 dark:text-sky-300 flex items-center gap-2">
+                                <span>🛡️</span> ASYMMETRIC VOLATILITY COMPRESSION (OPTION BUYING)
+                            </h3>
+                            <span class="text-xs px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200 font-mono font-bold">CHEAP ASYMMETRY</span>
+                        </div>
+                        <div class="mt-3 text-xs space-y-2 text-slate-600 dark:text-slate-300 leading-relaxed">
+                            <p><strong>When to Trigger:</strong> Valuation Diff % is less than -20% to -40% (Current Close near multi-day historical minimums).</p>
+                            <p><strong>Rationale:</strong> Volatility is crushed. Options are statistically cheap, offering 200% to 500% asymmetric payoffs on directional breakouts.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Tab 5: Terminal Audit Logs -->
+            <div id="tabLogs" class="p-4 hidden">
+                <div class="bg-slate-100 dark:bg-black/80 rounded-xl p-4 font-mono text-xs text-slate-700 dark:text-slate-300 space-y-1.5 h-64 overflow-y-auto" id="consoleLogs">
+                    <div class="text-slate-500">[SYSTEM] Initialized F&O Quantitative Derivatives Terminal v2.0</div>
+                    <div class="text-sky-600 dark:text-sky-400">[READY] Waiting for user Bhavcopy files. Zero seed or dummy data loaded.</div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-200 dark:border-terminal-border/60 py-3 px-4 text-xs font-mono text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-2">
+        <div>F&O UDIFF Bhavcopy Quantitative Derivatives Terminal • Real Data Processing Engine</div>
+        <div class="flex items-center gap-4">
+            <span>Fallback Engine: <strong class="text-emerald-600 dark:text-emerald-400">ACTIVE</strong></span>
+            <span>Mode: <strong id="footerMode" class="text-sky-600 dark:text-sky-400">OFFLINE BHAVCOPY (Awaiting Files)</strong></span>
+        </div>
+    </footer>
+
+    <!-- REAL LOGIC ENGINE & SCRIPTS (ZERO SEED DATA) -->
+    <script>
+        // State variables (EMPTY ON LOAD)
+        let currentDayRows = [];
+        let historicalSessions = {}; // filename -> rows
+        let currentFileName = "";
+        let histFileNames = [];
+        let chartInstance = null;
+
+        // Theme Toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('fno_theme', 'light');
+                document.getElementById('themeIcon').textContent = '🌙';
+                document.getElementById('themeText').textContent = 'Dark Mode';
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('fno_theme', 'dark');
+                document.getElementById('themeIcon').textContent = '☀️';
+                document.getElementById('themeText').textContent = 'Light Mode';
+            }
+            if (chartInstance) {
+                renderValuationChart(chartInstance.lastCeClose, chartInstance.lastPeClose, chartInstance.lastCeAvg, chartInstance.lastPeAvg);
+            }
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('fno_theme') || 'dark';
+            if (saved === 'light') {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('themeIcon').textContent = '🌙';
+                document.getElementById('themeText').textContent = 'Dark Mode';
+            } else {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').textContent = '☀️';
+                document.getElementById('themeText').textContent = 'Light Mode';
+            }
+        }
+
+        // Logging helper
+        function logConsole(msg, type = "info") {
+            const consoleEl = document.getElementById("consoleLogs");
+            const time = new Date().toTimeString().split(' ')[0];
+            const div = document.createElement("div");
+            if (type === "success") div.className = "text-emerald-600 dark:text-emerald-400";
+            else if (type === "cyan") div.className = "text-sky-600 dark:text-sky-400";
+            else if (type === "warn") div.className = "text-amber-600 dark:text-amber-400";
+            else if (type === "error") div.className = "text-rose-600 dark:text-rose-400";
+            else div.className = "text-slate-600 dark:text-slate-300";
+            div.textContent = `[${time}] ${msg}`;
+            consoleEl.appendChild(div);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        // Tab Switching
+        function switchTab(tabId) {
+            ['tabGrid', 'tabTomorrow', 'tabFuture', 'tabPlaybook', 'tabLogs'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            ['btnTabGrid', 'btnTabTomorrow', 'btnTabFuture', 'btnTabPlaybook', 'btnTabLogs'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.classList.remove('border-sky-600', 'dark:border-sky-400', 'text-sky-600', 'dark:text-sky-400', 'bg-white', 'dark:bg-surface-card');
+                    btn.classList.add('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+                }
+            });
+
+            const target = document.getElementById(tabId);
+            if (target) target.classList.remove('hidden');
+            const activeBtn = 'btn' + tabId.charAt(0).toUpperCase() + tabId.slice(1);
+            const btn = document.getElementById(activeBtn);
+            if (btn) {
+                btn.classList.add('border-sky-600', 'dark:border-sky-400', 'text-sky-600', 'dark:text-sky-400', 'bg-white', 'dark:bg-surface-card');
+                btn.classList.remove('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+            }
+        }
+
+        // Real Live API Fetch for Actual Spot Price (Zero False Data)
+        async function fetchLiveMarketData() {
+            const symbol = document.getElementById("selectSymbol").value;
+            const btnLabel = document.getElementById("lblLiveSpotBtn");
+            const pulse = document.getElementById("livePulseDot");
+            btnLabel.textContent = `Fetching live ${symbol}...`;
+            pulse.className = "w-2 h-2 rounded-full bg-amber-400 animate-ping";
+
+            logConsole(`Requesting live quote for ${symbol} from real financial API...`, "cyan");
+
+            // Mapping symbol to Yahoo Finance ticker
+            const tickerMap = {
+                "NIFTY": "^NSEI",
+                "BANKNIFTY": "^NSEBANK",
+                "FINNIFTY": "NIFTY_FIN_SERVICE.NS",
+                "MIDCPNIFTY": "NIFTY_MID_SELECT.NS",
+                "SENSEX": "^BSESN"
+            };
+            const ticker = tickerMap[symbol] || symbol;
+
+            try {
+                // Try local python backend proxy first if running
+                let resp = await fetch(`/api/live_spot?symbol=${symbol}`).catch(() => null);
+                let price = null;
+                let timestamp = null;
+
+                if (resp && resp.ok) {
+                    const data = await resp.json();
+                    price = data.spot;
+                    timestamp = data.time;
+                } else {
+                    // Direct browser fetch with public JSONP or standard API
+                    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1m&range=1d`;
+                    const directResp = await fetch(url).catch(() => null);
+                    if (directResp && directResp.ok) {
+                        const json = await directResp.json();
+                        const meta = json.chart.result[0].meta;
+                        price = meta.regularMarketPrice;
+                        timestamp = new Date(meta.regularMarketTime * 1000).toLocaleTimeString();
+                    }
+                }
+
+                if (price && !isNaN(price)) {
+                    document.getElementById("tapeStatus").textContent = `● LIVE MARKET FEED: ${symbol} SPOT: ₹${price.toLocaleString()} (${timestamp})`;
+                    document.getElementById("kpiSpotPrice").textContent = `₹${price.toLocaleString()}`;
+                    document.getElementById("footerMode").textContent = `LIVE API ACTIVE (${symbol}: ₹${price.toFixed(2)})`;
+                    btnLabel.textContent = `Live: ₹${price.toFixed(2)}`;
+                    pulse.className = "w-2 h-2 rounded-full bg-emerald-500";
+                    logConsole(`Real Live Spot Received for ${symbol}: ₹${price} at ${timestamp}`, "success");
+                } else {
+                    throw new Error("Live API unavailable (CORS / Network restriction).");
+                }
+            } catch (err) {
+                btnLabel.textContent = "📡 Fetch Live Spot (Real API)";
+                pulse.className = "w-2 h-2 rounded-full bg-sky-500";
+                logConsole(`Live API Note: ${err.message}. Using exact spot price from uploaded Bhavcopy file.`, "warn");
+                alert(`Real-Time API Note:\nLive API query failed or was blocked by browser network/CORS.\nThe terminal will extract the official spot price directly from your uploaded Bhavcopy.`);
+            }
+        }
+
+        // Setup Dropzone Drag & Drop
+        function setupDropzones() {
+            const cZone = document.getElementById("currentDropzone");
+            const cInput = document.getElementById("fileCurrent");
+
+            cZone.addEventListener("dragover", (e) => { e.preventDefault(); cZone.classList.add("dropzone-active"); });
+            cZone.addEventListener("dragleave", () => cZone.classList.remove("dropzone-active"));
+            cZone.addEventListener("drop", (e) => {
+                e.preventDefault();
+                cZone.classList.remove("dropzone-active");
+                if (e.dataTransfer.files.length > 0) handleCurrentFile(e.dataTransfer.files[0]);
+            });
+            cInput.addEventListener("change", (e) => {
+                if (e.target.files.length > 0) handleCurrentFile(e.target.files[0]);
+            });
+
+            const hZone = document.getElementById("histDropzone");
+            const hInput = document.getElementById("fileHist");
+            hZone.addEventListener("dragover", (e) => { e.preventDefault(); hZone.classList.add("dropzone-active"); });
+            hZone.addEventListener("dragleave", () => hZone.classList.remove("dropzone-active"));
+            hZone.addEventListener("drop", (e) => {
+                e.preventDefault();
+                hZone.classList.remove("dropzone-active");
+                if (e.dataTransfer.files.length > 0) handleHistoricalFiles(e.dataTransfer.files);
+            });
+            hInput.addEventListener("change", (e) => {
+                if (e.target.files.length > 0) handleHistoricalFiles(e.target.files);
+            });
+        }
+
+        // Normalized Row Schema (Supports any NSE Bhavcopy or OPTIDX report)
+        function normalizeRow(row) {
+            const norm = {};
+            for (const key of Object.keys(row)) {
+                if (!key) continue;
+                const cleanKey = key.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+                const val = row[key];
+
+                if (cleanKey === 'tckrsymb' || cleanKey === 'symbol') norm.symbol = String(val).trim().toUpperCase();
+                else if (cleanKey === 'xprydt' || cleanKey === 'expiry') norm.expiry = String(val).trim();
+                else if (cleanKey === 'strkpric' || cleanKey === 'strikeprice') norm.strike = parseFloat(val);
+                else if (cleanKey === 'optntp' || cleanKey === 'optiontype') norm.option_type = String(val).trim().toUpperCase();
+                else if (cleanKey === 'clspric' || cleanKey === 'close') norm.close = parseFloat(val);
+                else if (cleanKey === 'opnpric' || cleanKey === 'open') norm.open = parseFloat(val);
+                else if (cleanKey === 'hghpric' || cleanKey === 'high') norm.high = parseFloat(val);
+                else if (cleanKey === 'lwpric' || cleanKey === 'low') norm.low = parseFloat(val);
+                else if (cleanKey === 'undrlygpric' || cleanKey === 'underlyingvalue' || cleanKey === 'underlyingprice') norm.underlying = parseFloat(val);
+                else if (cleanKey === 'traddt' || cleanKey === 'date') norm.trade_date = String(val).trim();
+                else if (cleanKey === 'opnintrst' || cleanKey === 'openint') norm.oi = parseFloat(val);
+                else if (cleanKey === 'chnginopnintrst' || cleanKey === 'changeinoi') norm.oi_change = parseFloat(val);
+            }
+            return norm;
+        }
+
+        function handleCurrentFile(file) {
+            logConsole(`Loading current-day file: ${file.name}...`, "cyan");
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    currentDayRows = results.data;
+                    currentFileName = file.name;
+                    document.getElementById("currentFileName").textContent = file.name;
+                    document.getElementById("currentFilePill").classList.remove("hidden");
+                    document.getElementById("currentRowsCount").textContent = currentDayRows.length.toLocaleString();
+                    document.getElementById("currentStatusBadge").textContent = "1 loaded";
+                    document.getElementById("currentStatusBadge").className = "text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/40";
+                    
+                    // Extract trade date from rows
+                    const firstNorm = normalizeRow(currentDayRows[0]);
+                    if (firstNorm.trade_date) {
+                        document.getElementById("currentTradeDate").textContent = firstNorm.trade_date;
+                    }
+
+                    logConsole(`Parsed ${currentDayRows.length.toLocaleString()} real rows from ${file.name}`, "success");
+                    populateExpiriesAndStrikes();
+                }
+            });
+        }
+
+        function handleHistoricalFiles(fileList) {
+            let loadedCount = 0;
+            for (let file of fileList) {
+                histFileNames.push(file.name);
+                logConsole(`Ingesting historical file: ${file.name}...`, "info");
+                Papa.parse(file, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        historicalSessions[file.name] = results.data;
+                        loadedCount++;
+                        updateHistChips();
+                        if (loadedCount === fileList.length) {
+                            logConsole(`Finished loading all ${fileList.length} historical files.`, "success");
+                        }
+                    }
+                });
+            }
+        }
+
+        function updateHistChips() {
+            const container = document.getElementById("histChipsContainer");
+            container.innerHTML = "";
+            const keys = Object.keys(historicalSessions);
+            document.getElementById("histStatusBadge").textContent = `${keys.length} files`;
+            document.getElementById("histStatusBadge").className = "text-[11px] font-mono px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800/40";
+            document.getElementById("histSessionsCount").textContent = `${keys.length} Days`;
+
+            keys.forEach(k => {
+                const chip = document.createElement("div");
+                chip.className = "flex items-center justify-between text-[11px] font-mono px-2 py-1 bg-slate-100 dark:bg-surface-card rounded border border-slate-200 dark:border-terminal-border text-slate-700 dark:text-slate-300";
+                chip.innerHTML = `<span class="truncate max-w-[220px]">📊 ${k}</span> <span class="text-purple-600 dark:text-purple-400 font-bold">${historicalSessions[k].length} rows</span>`;
+                container.appendChild(chip);
+            });
+        }
+
+        function clearCurrentFile() {
+            currentDayRows = [];
+            currentFileName = "";
+            document.getElementById("currentFilePill").classList.add("hidden");
+            document.getElementById("currentRowsCount").textContent = "0";
+            document.getElementById("currentStatusBadge").textContent = "0 loaded";
+            document.getElementById("currentStatusBadge").className = "text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500";
+            document.getElementById("currentTradeDate").textContent = "--";
+        }
+
+        function clearHistFiles() {
+            historicalSessions = {};
+            histFileNames = [];
+            document.getElementById("histChipsContainer").innerHTML = "";
+            document.getElementById("histStatusBadge").textContent = "0 files";
+            document.getElementById("histStatusBadge").className = "text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500";
+            document.getElementById("histSessionsCount").textContent = "0 Days";
+        }
+
+        function populateExpiriesAndStrikes() {
+            const expSelect = document.getElementById("selectExpiry");
+            expSelect.innerHTML = `<option value="AUTO" selected>Auto-Detect from File</option>`;
+
+            const symbol = document.getElementById("selectSymbol").value.toUpperCase();
+            const expSet = new Set();
+            const strikeSet = new Set();
+
+            currentDayRows.forEach(r => {
+                const norm = normalizeRow(r);
+                if (norm.symbol === symbol) {
+                    if (norm.expiry) expSet.add(norm.expiry);
+                    if (!isNaN(norm.strike)) strikeSet.add(norm.strike);
+                }
+            });
+
+            Array.from(expSet).sort().forEach(exp => {
+                const opt = document.createElement("option");
+                opt.value = exp;
+                opt.textContent = exp;
+                expSelect.appendChild(opt);
+            });
+
+            const strikeSelect = document.getElementById("selectStrike");
+            strikeSelect.innerHTML = `<option value="AUTO" selected>Auto (ATM Strike)</option>`;
+            Array.from(strikeSet).sort((a,b)=>a-b).forEach(s => {
+                const opt = document.createElement("option");
+                opt.value = s;
+                opt.textContent = s;
+                strikeSelect.appendChild(opt);
+            });
+        }
+
+        function onSymbolChange() {
+            if (currentDayRows.length > 0) populateExpiriesAndStrikes();
+        }
+
+        // ======================================================================
+        // REAL QUANTITATIVE CALCULATION ENGINE (100% EXECUTED ON REAL USER DATA)
+        // ======================================================================
+        function executeAnalysis() {
+            if (currentDayRows.length === 0) {
+                alert("Please upload a Current Day Bhavcopy file first (e.g. BhavCopy_NSE_FO_...csv).");
+                return;
+            }
+
+            const symbol = document.getElementById("selectSymbol").value.toUpperCase();
+            const selectedExpiry = document.getElementById("selectExpiry").value;
+            const selectedStrikeOpt = document.getElementById("selectStrike").value;
+            const lookbackDays = parseInt(document.getElementById("rangeDays").value, 10);
+
+            logConsole(`Executing quantitative analysis for ${symbol}...`, "cyan");
+
+            // Filter normalized rows for symbol
+            const normCurrent = currentDayRows.map(normalizeRow).filter(r => r.symbol === symbol);
+            if (normCurrent.length === 0) {
+                alert(`No records found in current Bhavcopy for symbol '${symbol}'. Please verify symbol.`);
+                return;
+            }
+
+            // 1. Determine Underlying Spot Price from actual file
+            let spotPrice = 0;
+            const withSpot = normCurrent.filter(r => !isNaN(r.underlying) && r.underlying > 0);
+            if (withSpot.length > 0) {
+                spotPrice = withSpot[0].underlying;
+            } else {
+                const fut = normCurrent.find(r => r.option_type === 'XX' || !r.option_type);
+                if (fut && !isNaN(fut.close)) spotPrice = fut.close;
+            }
+
+            // 2. Determine Effective Expiry
+            let effectiveExpiry = selectedExpiry;
+            if (effectiveExpiry === 'AUTO' || !effectiveExpiry) {
+                const distinctExpiries = [...new Set(normCurrent.map(r => r.expiry).filter(Boolean))].sort();
+                effectiveExpiry = distinctExpiries[0] || 'Unknown';
+            }
+
+            // 3. Filter for Target Expiry
+            const expiryRows = normCurrent.filter(r => r.expiry === effectiveExpiry);
+            const targetRows = expiryRows.length > 0 ? expiryRows : normCurrent;
+
+            // 4. Determine ATM Strike from actual strikes
+            const availableStrikes = [...new Set(targetRows.map(r => r.strike).filter(s => !isNaN(s)))].sort((a,b) => a - b);
+            if (availableStrikes.length === 0) {
+                alert(`No strike prices found in file for ${symbol} (${effectiveExpiry}).`);
+                return;
+            }
+
+            let atmStrike = 0;
+            if (selectedStrikeOpt !== 'AUTO' && !isNaN(parseFloat(selectedStrikeOpt))) {
+                atmStrike = parseFloat(selectedStrikeOpt);
+            } else {
+                if (spotPrice > 0) {
+                    atmStrike = availableStrikes.reduce((prev, curr) => Math.abs(curr - spotPrice) < Math.abs(prev - spotPrice) ? curr : prev);
+                } else {
+                    atmStrike = availableStrikes[Math.floor(availableStrikes.length / 2)];
+                }
+            }
+
+            // 5. Extract Current ATM CE and PE
+            const ceRow = targetRows.find(r => r.strike === atmStrike && r.option_type === 'CE');
+            const peRow = targetRows.find(r => r.strike === atmStrike && r.option_type === 'PE');
+
+            if (!ceRow && !peRow) {
+                alert(`No option contract found for ATM strike ${atmStrike}. Please choose another strike.`);
+                return;
+            }
+
+            const ceCurrentClose = ceRow && !isNaN(ceRow.close) ? ceRow.close : 0;
+            const peCurrentClose = peRow && !isNaN(peRow.close) ? peRow.close : 0;
+
+            // 6. Process Historical Files (Progressive 3-Tier Fallback)
+            const histDatesSeen = new Set();
+            const ceHistCloses = [], ceHistOpens = [], ceHistHighs = [], ceHistLows = [];
+            const peHistCloses = [], peHistOpens = [], peHistHighs = [], peHistLows = [];
+
+            for (const fName of Object.keys(historicalSessions)) {
+                const rawH = historicalSessions[fName];
+                const normH = rawH.map(normalizeRow).filter(r => r.symbol === symbol);
+
+                // Tier 1 & 2: Nearest strike in historical file
+                const hStrikes = [...new Set(normH.map(r => r.strike).filter(s => !isNaN(s)))];
+                let hStrike = atmStrike;
+                if (!hStrikes.includes(atmStrike) && hStrikes.length > 0) {
+                    hStrike = hStrikes.reduce((prev, curr) => Math.abs(curr - atmStrike) < Math.abs(prev - atmStrike) ? curr : prev);
+                }
+
+                normH.forEach(r => {
+                    if (r.strike === hStrike) {
+                        const dKey = (r.trade_date || fName) + '_' + r.option_type;
+                        if (!histDatesSeen.has(dKey)) {
+                            histDatesSeen.add(dKey);
+                            if (r.option_type === 'CE' && !isNaN(r.close)) {
+                                ceHistCloses.push(r.close);
+                                if (!isNaN(r.open)) ceHistOpens.push(r.open);
+                                if (!isNaN(r.high)) ceHistHighs.push(r.high);
+                                if (!isNaN(r.low)) ceHistLows.push(r.low);
+                            } else if (r.option_type === 'PE' && !isNaN(r.close)) {
+                                peHistCloses.push(r.close);
+                                if (!isNaN(r.open)) peHistOpens.push(r.open);
+                                if (!isNaN(r.high)) peHistHighs.push(r.high);
+                                if (!isNaN(r.low)) peHistLows.push(r.low);
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Slice to user lookback window
+            const ceCloses = ceHistCloses.slice(0, lookbackDays);
+            const peCloses = peHistCloses.slice(0, lookbackDays);
+
+            const ceAvg = ceCloses.length > 0 ? (ceCloses.reduce((a,b)=>a+b,0) / ceCloses.length) : null;
+            const ceMax = ceCloses.length > 0 ? Math.max(...ceCloses) : null;
+            const ceMin = ceCloses.length > 0 ? Math.min(...ceCloses) : null;
+
+            const peAvg = peCloses.length > 0 ? (peCloses.reduce((a,b)=>a+b,0) / peCloses.length) : null;
+            const peMax = peCloses.length > 0 ? Math.max(...peCloses) : null;
+            const peMin = peCloses.length > 0 ? Math.min(...peCloses) : null;
+
+            // Valuation % calculations
+            const ceDiffPct = (ceAvg !== null && ceAvg > 0) ? (((ceCurrentClose - ceAvg) / ceAvg) * 100) : null;
+            const peDiffPct = (peAvg !== null && peAvg > 0) ? (((peCurrentClose - peAvg) / peAvg) * 100) : null;
+
+            // Combined Straddle
+            const straddleCost = (ceCurrentClose > 0 && peCurrentClose > 0) ? (ceCurrentClose + peCurrentClose) : (ceCurrentClose || peCurrentClose);
+            const histStraddleAvg = (ceAvg !== null && peAvg !== null) ? (ceAvg + peAvg) : null;
+            const straddleExpectedPct = spotPrice > 0 ? ((straddleCost / spotPrice) * 100).toFixed(2) : "0.00";
+
+            // Breakevens & Action Rules
+            const lowerBE = (spotPrice > 0 && straddleCost > 0) ? (spotPrice - straddleCost).toFixed(2) : "--";
+            const upperBE = (spotPrice > 0 && straddleCost > 0) ? (spotPrice + straddleCost).toFixed(2) : "--";
+            const target50 = (straddleCost * 0.50).toFixed(2);
+            const sl25 = (straddleCost * 1.25).toFixed(2);
+            const cushionPts = (upperBE !== "--" && lowerBE !== "--") ? (parseFloat(upperBE) - parseFloat(lowerBE)).toFixed(2) : "--";
+
+            // Update Top 5 KPI Cards with Real Data
+            document.getElementById("kpiAtmStrike").textContent = atmStrike;
+            document.getElementById("kpiSpotPrice").textContent = spotPrice > 0 ? `₹${spotPrice.toLocaleString()}` : "File Close";
+            document.getElementById("kpiBasis").textContent = spotPrice > 0 ? `${(spotPrice - atmStrike).toFixed(2)} pts` : "--";
+
+            // CE KPI
+            document.getElementById("kpiCeClose").textContent = ceCurrentClose > 0 ? `₹${ceCurrentClose.toFixed(2)}` : "--";
+            if (ceDiffPct !== null) {
+                document.getElementById("kpiCeAvg").textContent = `₹${ceAvg.toFixed(2)}`;
+                document.getElementById("kpiCeDiffBadge").textContent = `${ceDiffPct >= 0 ? '+' : ''}${ceDiffPct.toFixed(1)}%`;
+                document.getElementById("kpiCeDiffBadge").className = `text-xs px-2 py-0.5 rounded font-mono font-bold ${ceDiffPct >= 0 ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400'}`;
+                document.getElementById("kpiCeTag").textContent = ceDiffPct >= 20 ? "Overpriced" : (ceDiffPct <= -20 ? "Underpriced" : "Fair Value");
+            }
+
+            // PE KPI
+            document.getElementById("kpiPeClose").textContent = peCurrentClose > 0 ? `₹${peCurrentClose.toFixed(2)}` : "--";
+            if (peDiffPct !== null) {
+                document.getElementById("kpiPeAvg").textContent = `₹${peAvg.toFixed(2)}`;
+                document.getElementById("kpiPeDiffBadge").textContent = `${peDiffPct >= 0 ? '+' : ''}${peDiffPct.toFixed(1)}%`;
+                document.getElementById("kpiPeDiffBadge").className = `text-xs px-2 py-0.5 rounded font-mono font-bold ${peDiffPct >= 0 ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400' : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400'}`;
+                document.getElementById("kpiPeTag").textContent = peDiffPct >= 20 ? "Overpriced" : (peDiffPct <= -20 ? "Underpriced" : "Fair Value");
+            }
+
+            // Straddle KPI
+            document.getElementById("kpiStraddleCost").textContent = `₹${straddleCost.toFixed(2)}`;
+            document.getElementById("kpiStraddlePct").textContent = `±${straddleExpectedPct}%`;
+            document.getElementById("kpiStraddleAvg").textContent = histStraddleAvg !== null ? `₹${histStraddleAvg.toFixed(2)}` : "--";
+            document.getElementById("kpiStraddleTag").textContent = histStraddleAvg !== null ? `${straddleCost > histStraddleAvg ? 'High Move' : 'Compressed'}` : "Computed";
+
+            // Signal KPI
+            let maxPct = Math.max(Math.abs(ceDiffPct || 0), Math.abs(peDiffPct || 0));
+            if ((ceDiffPct || 0) >= 20 || (peDiffPct || 0) >= 20) {
+                document.getElementById("kpiQuantSignal").textContent = "SELL STRADDLE";
+                document.getElementById("kpiQuantEdgeTag").textContent = "Premium Expanded";
+                document.getElementById("kpiEdgeStatus").textContent = "Mean-Reversion Edge";
+            } else if ((ceDiffPct || 0) <= -20 || (peDiffPct || 0) <= -20) {
+                document.getElementById("kpiQuantSignal").textContent = "BUY OPTIONS";
+                document.getElementById("kpiQuantEdgeTag").textContent = "Vol Crushed";
+                document.getElementById("kpiEdgeStatus").textContent = "Cheap Asymmetry";
+            } else {
+                document.getElementById("kpiQuantSignal").textContent = "RANGE CONDOR";
+                document.getElementById("kpiQuantEdgeTag").textContent = "Fair Value Mean";
+                document.getElementById("kpiEdgeStatus").textContent = "Neutral";
+            }
+
+            // Update Tomorrow's Action Plan Directive (Pillars)
+            document.getElementById("radarDot").className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping";
+            document.getElementById("radarStatusPill").textContent = "CALCULATED DIRECTIVE READY";
+            document.getElementById("radarStatusPill").className = "text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/40";
+            
+            document.getElementById("actTradeRecommendation").textContent = `Sell ${atmStrike} CE & PE Straddle`;
+            document.getElementById("actTradeRationale").textContent = `Real file valuation: Combined Straddle @ ₹${straddleCost.toFixed(2)}. Capture opening theta decay.`;
+            document.getElementById("actTagOpen").className = "text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 font-mono font-bold";
+            document.getElementById("actTagOpen").textContent = "READY TO DEPLOY";
+            document.getElementById("actEntryPrem").textContent = `~₹${straddleCost.toFixed(2)}`;
+            document.getElementById("actEntryType").textContent = "Delta Neutral";
+
+            document.getElementById("actTargetPrice").textContent = `Target @ ₹${target50}`;
+            document.getElementById("actTargetDesc").textContent = `Book 50% decay on straddle to lock in +₹${(straddleCost - parseFloat(target50)).toFixed(2)}/share gain.`;
+            document.getElementById("actTargetBadge").className = "text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 font-mono font-bold";
+            document.getElementById("actTargetBadge").textContent = "50% DECAY";
+            document.getElementById("actTrailRule").textContent = "Trail SL @ 25% decay";
+
+            document.getElementById("actStopLossPrice").textContent = `Hard SL @ ₹${sl25}`;
+            document.getElementById("actLowerBE").textContent = lowerBE;
+            document.getElementById("actUpperBE").textContent = upperBE;
+            document.getElementById("actCushionPts").textContent = `${cushionPts} Pts Cushion`;
+            document.getElementById("actStopBadge").className = "text-[10px] px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 font-mono font-bold";
+            document.getElementById("actStopBadge").textContent = "25% MAX LOSS";
+
+            // Update Top Header Ticker Tape with Real Computed Results
+            document.getElementById("tapeStatus").textContent = `● ${symbol} SPOT: ₹${spotPrice > 0 ? spotPrice.toLocaleString() : 'N/A'} • ATM: ${atmStrike} • STRADDLE: ₹${straddleCost.toFixed(2)} (±${straddleExpectedPct}%) • EXPIRY: ${effectiveExpiry}`;
+            document.getElementById("engineBadge").innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> ANALYSIS ACTIVE`;
+            document.getElementById("engineBadge").className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800";
+
+            // Populate Results Grid Table
+            const tbody = document.getElementById("tableBody");
+            tbody.innerHTML = "";
+
+            const rowsToDisplay = [];
+            if (ceRow) {
+                rowsToDisplay.push({
+                    type: "CE",
+                    strike: atmStrike,
+                    expiry: effectiveExpiry,
+                    close: ceCurrentClose,
+                    avg: ceAvg,
+                    diff: ceDiffPct,
+                    open: ceRow.open || "--",
+                    high: ceRow.high || "--",
+                    low: ceRow.low || "--",
+                    max: ceMax,
+                    min: ceMin
+                });
+            }
+            if (peRow) {
+                rowsToDisplay.push({
+                    type: "PE",
+                    strike: atmStrike,
+                    expiry: effectiveExpiry,
+                    close: peCurrentClose,
+                    avg: peAvg,
+                    diff: peDiffPct,
+                    open: peRow.open || "--",
+                    high: peRow.high || "--",
+                    low: peRow.low || "--",
+                    max: peMax,
+                    min: peMin
+                });
+            }
+
+            rowsToDisplay.forEach(item => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition";
+                const isCE = item.type === "CE";
+                const badgeColor = item.diff !== null && item.diff >= 0 ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800" : "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800";
+                const edgeLabel = item.diff !== null && item.diff >= 20 ? "SELL EDGE - Overpriced" : (item.diff !== null && item.diff <= -20 ? "BUY EDGE - Underpriced" : "FAIR VALUE - Range");
+
+                tr.innerHTML = `
+                    <td class="p-3 font-bold ${isCE ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}">${symbol} ${item.type}</td>
+                    <td class="p-3 font-semibold text-slate-800 dark:text-white">${item.strike}</td>
+                    <td class="p-3 text-slate-600 dark:text-slate-300">${item.expiry}</td>
+                    <td class="p-3 text-right font-bold text-slate-800 dark:text-white">₹${item.close.toFixed(2)}</td>
+                    <td class="p-3 text-right text-slate-600 dark:text-slate-300">${item.avg !== null ? '₹' + item.avg.toFixed(2) : '--'}</td>
+                    <td class="p-3 text-center"><span class="px-2 py-0.5 rounded border text-[11px] font-bold ${badgeColor}">${item.diff !== null ? (item.diff >= 0 ? '+' : '') + item.diff.toFixed(2) + '%' : '--'}</span></td>
+                    <td class="p-3 text-center font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300">${edgeLabel}</td>
+                    <td class="p-3 text-right text-slate-500">${typeof item.open === 'number' ? item.open.toFixed(2) : item.open}</td>
+                    <td class="p-3 text-right text-slate-500">${typeof item.high === 'number' ? item.high.toFixed(2) : item.high}</td>
+                    <td class="p-3 text-right text-slate-500">${typeof item.low === 'number' ? item.low.toFixed(2) : item.low}</td>
+                    <td class="p-3 text-right text-slate-600 dark:text-slate-300">${item.max !== null ? item.max.toFixed(2) : '--'}</td>
+                    <td class="p-3 text-right text-slate-600 dark:text-slate-300">${item.min !== null ? item.min.toFixed(2) : '--'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Populate Tomorrow's Action Plan Tab Content
+            document.getElementById("tomorrowPlanContainer").innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 text-left font-mono">
+                    <div class="p-4 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/10">
+                        <span class="font-bold text-emerald-700 dark:text-emerald-400 block pb-2 border-b border-emerald-200 dark:border-emerald-900/40 text-xs">SCENARIO A: FLAT OPEN (±35 PTS)</span>
+                        <div class="mt-3 text-xs space-y-2 text-slate-700 dark:text-slate-300">
+                            <p><strong>Timing:</strong> Enter between 09:18 – 09:25 AM IST.</p>
+                            <p><strong>Action:</strong> Sell 1 Lot ${atmStrike} CE (@ ₹${ceCurrentClose.toFixed(2)}) + Sell 1 Lot ${atmStrike} PE (@ ₹${peCurrentClose.toFixed(2)}).</p>
+                            <p><strong>Combined Credit:</strong> ₹${straddleCost.toFixed(2)} per share.</p>
+                            <p class="text-emerald-700 dark:text-emerald-400"><strong>Target:</strong> Exit @ ₹${target50} (50% Decay Gain).</p>
+                            <p class="text-rose-700 dark:text-rose-400"><strong>Stop Loss:</strong> Exit if straddle hits ₹${sl25}.</p>
+                        </div>
+                    </div>
+                    <div class="p-4 rounded-xl border border-sky-200 dark:border-sky-500/30 bg-sky-50/40 dark:bg-sky-950/10">
+                        <span class="font-bold text-sky-700 dark:text-sky-400 block pb-2 border-b border-sky-200 dark:border-sky-900/40 text-xs">SCENARIO B: GAP-UP (> +80 PTS)</span>
+                        <div class="mt-3 text-xs space-y-2 text-slate-700 dark:text-slate-300">
+                            <p><strong>Condition:</strong> Spot opens above ${upperBE}.</p>
+                            <p><strong>Action:</strong> Do not sell the old ${atmStrike} strike. Shift reference strike upward to next strike or deploy Bear Call Spread (Sell Call, Buy OTM Call hedge).</p>
+                        </div>
+                    </div>
+                    <div class="p-4 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/40 dark:bg-rose-950/10">
+                        <span class="font-bold text-rose-700 dark:text-rose-400 block pb-2 border-b border-rose-200 dark:border-rose-900/40 text-xs">SCENARIO C: GAP-DOWN (> -80 PTS)</span>
+                        <div class="mt-3 text-xs space-y-2 text-slate-700 dark:text-slate-300">
+                            <p><strong>Condition:</strong> Spot opens below ${lowerBE}.</p>
+                            <p><strong>Action:</strong> Wait for initial panic Put spike to subside (after 9:30 AM). Deploy Bull Put Spread at support floor.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Populate Future Roadmap Tab Content
+            document.getElementById("futureRoadmapContainer").innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-left font-mono">
+                    <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                        <span class="text-xs font-bold text-sky-600 dark:text-sky-400 block">1. DAILY 6:30 PM DECAY VELOCITY AUDIT</span>
+                        <p class="text-xs text-slate-600 dark:text-slate-300">Upload tomorrow's Bhavcopy to calculate day-over-day theta decay. If straddle premium decays by &gt; ₹30/day, the position is tracking at 100% mathematical edge.</p>
+                    </div>
+                    <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                        <span class="text-xs font-bold text-amber-600 dark:text-amber-400 block">2. STRIKE MIGRATION THRESHOLD</span>
+                        <p class="text-xs text-slate-600 dark:text-slate-300">If spot price crosses ${lowerBE} or ${upperBE}, roll the winning untested leg closer to current spot to lock in profit and re-center delta.</p>
+                    </div>
+                </div>
+            `;
+
+            // Render Chart with Real Calculated Numbers
+            renderValuationChart(ceCurrentClose, peCurrentClose, ceAvg, peAvg);
+
+            // Enable Excel Export
+            const btnExp = document.getElementById("btnExportExcel");
+            btnExp.disabled = false;
+            btnExp.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm flex items-center gap-2 transition cursor-pointer";
+
+            logConsole(`Calculated ATM Strike ${atmStrike}. Straddle: ₹${straddleCost.toFixed(2)}. Breakevens: ${lowerBE} to ${upperBE}.`, "success");
+        }
+
+        // Render Valuation Chart
+        function renderValuationChart(ceClose, peClose, ceAvg, peAvg) {
+            const wrapper = document.getElementById("chartWrapper");
+            const placeholder = document.getElementById("chartPlaceholder");
+            const canvas = document.getElementById("valuationChart");
+
+            placeholder.classList.add("hidden");
+            canvas.classList.remove("hidden");
+
+            const isDark = document.documentElement.classList.contains("dark");
+            const textColor = isDark ? "#94A3B8" : "#475569";
+            const gridColor = isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.06)";
+
+            const ctx = canvas.getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            const cAvgVal = ceAvg !== null ? ceAvg : 0;
+            const pAvgVal = peAvg !== null ? peAvg : 0;
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Call Option (CE)', 'Put Option (PE)', 'Combined ATM Straddle'],
+                    datasets: [
+                        {
+                            label: 'Current Close (Bhavcopy)',
+                            data: [ceClose, peClose, ceClose + peClose],
+                            backgroundColor: isDark ? 'rgba(56, 189, 248, 0.85)' : 'rgba(2, 132, 199, 0.85)',
+                            borderColor: '#0284C7',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Historical Avg Benchmark',
+                            data: [cAvgVal, pAvgVal, cAvgVal + pAvgVal],
+                            backgroundColor: isDark ? 'rgba(168, 85, 247, 0.65)' : 'rgba(126, 34, 206, 0.65)',
+                            borderColor: '#8B5CF6',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: textColor,
+                                font: { family: 'JetBrains Mono', size: 11 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                            titleColor: isDark ? '#F8FAFC' : '#0F172A',
+                            bodyColor: isDark ? '#F8FAFC' : '#0F172A',
+                            borderColor: isDark ? '#1E293B' : '#E2E8F0',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, font: { family: 'JetBrains Mono' } }
+                        },
+                        y: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, font: { family: 'JetBrains Mono' }, callback: v => '₹' + v }
+                        }
+                    }
+                }
+            });
+
+            chartInstance.lastCeClose = ceClose;
+            chartInstance.lastPeClose = peClose;
+            chartInstance.lastCeAvg = ceAvg;
+            chartInstance.lastPeAvg = peAvg;
+        }
+
+        // Export Real Calculated Output to Excel
+        function exportToExcel() {
+            logConsole("Exporting real calculated analysis results to Excel (.xlsx)...", "cyan");
+
+            // Extract table data directly from rendered rows
+            const table = document.getElementById("tableBody");
+            const rows = table.getElementsByTagName("tr");
+            const data = [];
+
+            for (let r of rows) {
+                const cols = r.getElementsByTagName("td");
+                if (cols.length >= 7) {
+                    data.push({
+                        Contract: cols[0].innerText.trim(),
+                        Strike: cols[1].innerText.trim(),
+                        Expiry: cols[2].innerText.trim(),
+                        "Current Close": cols[3].innerText.trim(),
+                        "Hist Avg": cols[4].innerText.trim(),
+                        "Valuation %": cols[5].innerText.trim(),
+                        "Quant Edge Signal": cols[6].innerText.trim(),
+                        Open: cols[7].innerText.trim(),
+                        High: cols[8].innerText.trim(),
+                        Low: cols[9].innerText.trim(),
+                        "Hist Max": cols[10].innerText.trim(),
+                        "Hist Min": cols[11].innerText.trim(),
+                    });
+                }
+            }
+
+            if (data.length === 0) {
+                alert("No calculated results to export. Run analysis first.");
+                return;
+            }
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ATM Analysis");
+
+            const meta = [
+                { Parameter: "Symbol", Value: document.getElementById("selectSymbol").value },
+                { Parameter: "Spot Price", Value: document.getElementById("kpiSpotPrice").innerText },
+                { Parameter: "ATM Strike", Value: document.getElementById("kpiAtmStrike").innerText },
+                { Parameter: "Straddle Cost", Value: document.getElementById("kpiStraddleCost").innerText },
+                { Parameter: "Tomorrow 9:15 AM Action", Value: document.getElementById("actTradeRecommendation").innerText },
+                { Parameter: "Take Profit Target", Value: document.getElementById("actTargetPrice").innerText },
+                { Parameter: "Stop Loss Threshold", Value: document.getElementById("actStopLossPrice").innerText },
+                { Parameter: "Lower Breakeven", Value: document.getElementById("actLowerBE").innerText },
+                { Parameter: "Upper Breakeven", Value: document.getElementById("actUpperBE").innerText },
+                { Parameter: "Exported At", Value: new Date().toISOString() }
+            ];
+            const metaWs = XLSX.utils.json_to_sheet(meta);
+            XLSX.utils.book_append_sheet(wb, metaWs, "Run Info & Trade Plan");
+
+            XLSX.writeFile(wb, "Real_Calculated_ATM_Analysis.xlsx");
+            logConsole("Downloaded 'Real_Calculated_ATM_Analysis.xlsx' successfully.", "success");
+        }
+
+        // Initialize on Page Load (Zero Mock Data)
+        window.addEventListener("DOMContentLoaded", () => {
+            initTheme();
+            setupDropzones();
+            logConsole("Ready. Please drop your Current Bhavcopy and Historical files to begin.", "info");
+        });
+    </script>
+</body>
+</html>

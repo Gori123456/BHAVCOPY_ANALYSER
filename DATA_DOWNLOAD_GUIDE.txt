@@ -1,0 +1,203 @@
+================================================================================
+           NSE F&O BHAVCOPY DATA DOWNLOAD GUIDE - STEP-BY-STEP INSTRUCTIONS
+================================================================================
+
+This guide explains in complete detail:
+  1. What files are required by the F&O UDIFF Bhavcopy Analyzer.
+  2. Where to download them from the official National Stock Exchange of India (NSE).
+  3. Step-by-step instructions with exact links and navigation clicks.
+  4. How to understand the downloaded file columns.
+  5. Important trading day timings, holiday notes, and troubleshooting.
+
+--------------------------------------------------------------------------------
+1. WHAT FILES DO YOU NEED?
+--------------------------------------------------------------------------------
+
+The analyzer requires two sets of files:
+
+  A) CURRENT-DAY FILE (1 or more files):
+     - The trading file representing today's (or the most recent) session.
+     - Provides today's Open, High, Low, Close, and the Spot/Underlying price.
+
+  B) HISTORICAL BHAVCOPY FILES (1 or more files):
+     - Files covering the prior trading days (e.g., last 7 trading days).
+     - Can be provided as:
+       * Individual daily files (one file per day), OR
+       * A single multi-day range file (e.g., covering Monday to Friday).
+
+Supported File Formats:
+  - CSV (.csv)
+  - Excel (.xlsx, .xls)
+  * Note: If NSE downloads the file as a .zip archive, extract the .csv first!
+
+
+--------------------------------------------------------------------------------
+2. METHOD 1 (EASIEST): CONTRACT-SPECIFIC HISTORICAL DATA FROM NSE QUOTE PAGE
+--------------------------------------------------------------------------------
+Use this method if you want data for a specific index or stock (e.g., NIFTY, 
+BANKNIFTY, RELIANCE). This gives clean, lightweight CSV files.
+
+STEP-BY-STEP DOWNLOAD STEPS:
+
+1. Open your web browser and go to the official NSE Derivatives Quote page:
+   URL: https://www.nseindia.com/get-quotes/derivatives?symbol=NIFTY
+   (Replace "NIFTY" in the URL with any symbol you want, e.g. BANKNIFTY)
+
+2. On the NIFTY Derivatives page:
+   - Scroll down to the table section.
+   - Look for the tab labelled "Historical Data" (usually next to "Option Chain" 
+     and "Contracts"). Click on "Historical Data".
+
+3. Configure the Filter Controls:
+   - Instrument Type : Select "Index Options" (OPTIDX) or "Stock Options" (OPTSTK)
+   - Symbol          : Select your symbol (e.g., NIFTY)
+   - Expiry Date     : Select your target contract expiry (e.g., 21-Jul-2026)
+   - Option Type     : Select "CE" (Call) or "PE" (Put)
+   - Strike Price    : Select your target strike (or leave blank if available)
+   - Date Range      : 
+       * For Current Day: Select today's date in both "From" and "To".
+       * For Historical: Select a date range covering the past 7-10 trading days
+         (e.g., "From: 13-Jul-2026"  "To: 17-Jul-2026").
+
+4. Click the "Filter" or "Get Data" button.
+
+5. Click "Download (.csv)":
+   - The file will download to your Downloads folder.
+   - File naming format will typically look like:
+     * Current Day : OPTIDX_NIFTY_CE_20-Jul-2026_TO_20-Jul-2026.csv
+     * Historical  : OPTIDX_NIFTY_CE_13-Jul-2026_TO_17-Jul-2026.csv
+
+
+--------------------------------------------------------------------------------
+3. METHOD 2 (FULL MARKET): DAILY UDIFF COMMON BHAVCOPY FROM NSE ALL REPORTS
+--------------------------------------------------------------------------------
+Use this method if you want the complete, official end-of-day market-wide Bhavcopy 
+file containing all traded futures and options for all symbols in one single file.
+
+STEP-BY-STEP DOWNLOAD STEPS:
+
+1. Open your web browser and go to the official NSE All Reports portal:
+   URL: https://www.nseindia.com/all-reports
+
+2. Select the "Derivatives" Tab:
+   - In the category tabs across the top of the report page, click "Derivatives".
+
+3. Locate the Bhavcopy Report:
+   - Look for the section: "Bhavcopy" or "Daily Reports".
+   - You will see:
+     "Bhavcopy (UDIFF format)" OR "Common Bhavcopy Final".
+
+4. Select the Date:
+   - Use the calendar date picker to select the specific trading day you want 
+     (e.g., today's date for current day, and prior trading dates for history).
+
+5. Download the File:
+   - Click the download icon / link.
+   - The downloaded file is typically a ZIP file named like:
+     BhavCopy_NSE_FO_0_0_0_YYYYMMDD_F_0000.csv.zip
+     (Example: BhavCopy_NSE_FO_0_0_0_20260720_F_0000.csv.zip)
+
+6. Extract / Unzip:
+   - Right-click the downloaded .zip file -> "Extract All..."
+   - You will get the extracted .csv file. This .csv file is what you upload 
+     into the analyzer application.
+
+
+--------------------------------------------------------------------------------
+4. ALTERNATIVE: NSE HISTORICAL DERIVATIVES ARCHIVE (BULK DOWNLOAD)
+--------------------------------------------------------------------------------
+If you need historical daily Bhavcopy files across multiple dates in the past:
+
+1. Visit the NSE Historical Reports Archive:
+   URL: https://www.nseindia.com/all-reports-derivatives
+   OR:  https://www.nseindia.com/products-services/equity-derivatives-reports
+
+2. Select:
+   - Report Type: "Bhavcopy" or "UDIFF Bhavcopy"
+   - Date: Select your historical date (e.g. 14th, 15th, 16th, 17th of the month)
+
+3. Download each trading day file and extract to a dedicated folder on your computer
+   (e.g., D:\MarketData\Historical\).
+
+
+--------------------------------------------------------------------------------
+5. EXPLANATION OF COLUMNS IN THE DOWNLOADED FILE
+--------------------------------------------------------------------------------
+
+Whether you download the full UDIFF Bhavcopy or the individual quote export, 
+the application's built-in intelligent column normalizer understands both schemas:
+
+Key Columns & Meanings:
+
+  UDIFF Header | Quote Header    | Meaning
+  -------------|-----------------|---------------------------------------------
+  TckrSymb     | Symbol          | Ticker symbol (e.g., NIFTY, BANKNIFTY, TCS)
+  TradDt       | Date            | Trade Date (e.g., 20-Jul-2026)
+  XpryDt       | Expiry          | Contract Expiry Date (e.g., 21-Jul-2026)
+  StrkPric     | Strike Price    | Strike price of the option (e.g., 24200.00)
+  OptnTp       | Option type     | "CE" (Call Option) or "PE" (Put Option)
+  OpnPric      | Open            | Opening price of the option during session
+  HghPric      | High            | Highest price reached during session
+  LwPric       | Low             | Lowest price reached during session
+  ClsPric      | Close           | Official closing price of the contract
+  UndrlygPric  | Underlying Value| The cash/spot price of the underlying index
+  TtlTradgVol  | No. of contracts| Total number of contracts traded today
+  OpnIntrst    | Open Int        | Total outstanding open positions (OI)
+
+
+--------------------------------------------------------------------------------
+6. CRITICAL TIMINGS, HOLIDAYS & TIPS
+--------------------------------------------------------------------------------
+
+1. Daily Bhavcopy Upload Time:
+   - NSE usually compiles and uploads the official Bhavcopy between:
+     6:30 PM IST and 7:30 PM IST on active trading days (Monday through Friday).
+   - If you download before 6:30 PM, you will get the previous day's file.
+
+2. Trading Holidays & Weekends:
+   - The stock exchange is CLOSED on Saturdays, Sundays, and declared national 
+     holidays (e.g. Republic Day, Independence Day, Diwali, etc.).
+   - Do NOT expect files for weekends or trading holidays.
+   - For a "7-Day" history, you need 7 TRADING DAYS (which spans about 9 to 10 
+     calendar days, accounting for weekends).
+
+3. Browser Tip for NSE Website:
+   - NSE India occasionally blocks automated scraping. Always download files 
+     directly using a regular browser (Chrome, Edge, Firefox, or Brave).
+   - If a page fails to load, go to https://www.nseindia.com homepage first, 
+     then navigate to the reports link.
+
+
+--------------------------------------------------------------------------------
+7. HOW TO LOAD DOWNLOADED FILES INTO THE ANALYZER
+--------------------------------------------------------------------------------
+
+Once your files are downloaded:
+
+1. Launch the Analyzer:
+   python main.py
+
+2. Upload Current Day File:
+   - Click "Upload Current Day File(s)" under Card 1.
+   - Select your today's file (e.g., OPTIDX_NIFTY_CE_20-Jul-2026_TO_20-Jul-2026.csv).
+   - Notice: The app immediately auto-detects and sets the Symbol ("NIFTY") 
+     and Expiry Date ("21-Jul-2026") in the dashboard!
+
+3. Upload Historical Files:
+   - Click "Upload Historical File(s)" under Card 2.
+   - Select your prior files (e.g., OPTIDX_NIFTY_CE_13-Jul-2026_TO_17-Jul-2026.csv).
+   - You can click the upload button multiple times to add more days.
+
+4. Check Parameters on Dashboard:
+   - Confirm Symbol, Expiry Date, History Days (e.g., 7), and Option Type (CE, PE, or BOTH).
+
+5. Click "▶ Run Analysis":
+   - The progress bar will update, top KPI cards will display live metrics, 
+     and the results table will show the full OHLC comparison.
+
+6. Export Results:
+   - Click "📊 Export to Excel" to save as .xlsx.
+
+================================================================================
+================================================================================
+

@@ -1,0 +1,78 @@
+# ==============================================================================
+# F&O UDIFF Bhavcopy Analyzer - .gitignore
+# ==============================================================================
+
+# --- Python & Bytecode ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Virtual Environments ---
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# --- Application Logs ---
+logs/
+*.log
+
+# --- Scratch & Temporary Experiment Files ---
+scratch/
+*.tmp
+*.temp
+
+# --- Generated Output & Analysis Results ---
+# (Ignore generated Excel and CSV analysis export reports)
+*.xlsx
+*.xls
+Institutional_ATM_Analysis_Results.xlsx
+Real_Calculated_ATM_Analysis.xlsx
+atm_analysis_results.xlsx
+
+# --- Heavy NSE Bhavcopy Raw Data Files ---
+# (Uncomment the line below if you do NOT want to commit large 5-10MB Bhavcopy files)
+BhavCopy_*.csv
+# *.csv
+
+# --- IDEs & Code Editors ---
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# --- Operating System Artifacts ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
